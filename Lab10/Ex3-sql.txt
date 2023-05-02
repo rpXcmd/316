@@ -1,0 +1,65 @@
+DROP PROCEDURE IF EXISTS insert_products;
+
+DELIMITER //
+
+CREATE PROCEDURE insert_products
+(
+par_product_id int,
+var_category_id INT,
+var_product_code varchar(50),
+var_product_name varchar(50),
+par_description VARCHAR(200),
+var_list_price DECIMAL(9,2),
+var_discount_percent DECIMAL(9,2),
+var_date_added_par date
+)
+BEGIN
+ DECLARE var_description VARCHAR(200) default ' ';
+ DECLARE var_date_added  date;
+ DECLARE var_product_id int;
+ 
+ -- Validate paramater values
+ IF (var_list_price < 0 or var_discount_percent<0) THEN
+ SIGNAL SQLSTATE '22003'
+ SET MESSAGE_TEXT = 'The value must be a positive number.',
+ MYSQL_ERRNO = 1264;
+ END IF;
+ 
+ -- Set default values for parameters
+IF par_description IS NULL THEN
+SELECT var_description INTO par_description
+FROM products WHERE category_id = var_category_id;
+END IF; 
+ 
+IF par_product_id IS NULL THEN
+SELECT DISTINCTROW var_product_id INTO par_product_id
+FROM products WHERE category_id = var_category_id;
+ELSE
+SET var_product_id = par_product_id;
+END IF;
+ 
+IF var_date_added_par IS NULL THEN
+SELECT curdate() INTO var_date_added
+FROM products WHERE product_id = var_product_id;
+END IF;
+
+ 
+INSERT INTO products
+ (product_id, category_id, product_code,
+ product_name, description, list_price, discount_percent, date_added)
+ VALUES (par_product_id, var_category_id, var_product_code, var_product_name,
+ par_description, var_list_price, var_discount_percent,curdate() );
+END//
+DELIMITER ;
+
+CALL insert_products(11, 2, 'squire890', 'test','',
+ -3.666, 15.00,'2023-04-29');
+ 
+SELECT 
+    *
+FROM
+    products;
+
+DELETE FROM products 
+WHERE
+    product_id >= 11; 
